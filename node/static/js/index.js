@@ -327,9 +327,25 @@ function initComponent() {
       }
    });
    ui.panel.browse_tree.root.asyncUnfold();
+
    ui.panel.analysis_result = new Flame.component.AnalysisBlockManager(
       ui.panel.analysis_result
    );
+   ui.panel.analysis_result.showBlock('flame://bookmark', 'bookmark', {}, {
+      disableClose: true,
+      onReset: function (self, obj) {
+         var div;
+         if (!obj || !obj.items || !obj.items.length) {
+            div = document.createElement('div');
+            div.className = 'item item-red';
+            ui.state.append_text(div, 'No Item');
+            self.ui.content.appendChild(div);
+            return;
+         }
+         // TODO: render bookmark items
+      }
+   });
+
    onHashChange();
 
    var pre = document.createElement('pre');
