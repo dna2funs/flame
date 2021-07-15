@@ -2,7 +2,6 @@
 
 //@include css/editor.css
 //@include js/common.js
-//@include js/onhold.js
 
 (function () {
 
@@ -45,18 +44,6 @@ function SourceCodeViewer(dom, text, opt) {
    this.ui.self.appendChild(root);
    // post: ui attached to screen
    sideFlex.style.font = getComputedStyle(this.ui.text).font;
-
-   this.onHoldOn = new Flame.event.ElementHoldEvent(this.ui.lineNumber, {
-      selectorFn: function (el) { return el.tagName.toLowerCase() === 'a'; }
-   });
-   var that = this;
-   this.onHoldOn.on(function (evt) {
-      // TODO: process for long hold click / touch on a line number
-      //       show metadata like blame, comment, linkage, ... in 'analysis' tab
-      var linenumber = parseInt(evt.target.textContent, 10);
-      // TODO: highlight the specific line (add extra hash #Ln)
-      that.opt.holdOnLineNumber && that.opt.holdOnLineNumber(linenumber);
-   });
 }
 SourceCodeViewer.prototype = {
    render: function () {
