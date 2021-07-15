@@ -1,7 +1,8 @@
 .ab-container {
-   width: 100%;
    border: 1px solid #fbf59f;
+   background-color: #fbf59f;
    overflow-x: hidden;
+   padding: 2px;
 }
 .ab-title > div {
    text-overflow: ellipsis;

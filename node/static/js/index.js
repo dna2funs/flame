@@ -327,6 +327,9 @@ function initComponent() {
       }
    });
    ui.panel.browse_tree.root.asyncUnfold();
+   ui.panel.analysis_result = new Flame.component.AnalysisBlockManager(
+      ui.panel.analysis_result
+   );
    onHashChange();
 
    var pre = document.createElement('pre');
