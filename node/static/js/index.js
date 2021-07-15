@@ -80,7 +80,8 @@ var ui = {
          }
       }, // label
       global: {
-         editor: null
+         editor: null,
+         lastHash: {}
       },
       const: {
          pre_font: null
@@ -89,24 +90,65 @@ var ui = {
 };
 
 function parseHash() {
+   // hash format:
+   //   - #/path/to/sth
+   //   - #?searchQuery
+   //   - #...#k1=v1#k2=v2...
    var parts = location.hash.split('#');
    parts.shift();
    var obj = {};
    obj.path = parts[0];
+   parts.shift();
+   parts.forEach(function (part) {
+      var kv = part.split('=');
+      obj[decodeURIComponent(kv[0] || '.')] = decodeURIComponent(kv[1] || '');
+   });
    return obj;
+}
+
+function buildHash(changes) {
+   var obj = ui.state.global.lastHash;
+   if (!obj) return '#';
+   obj = Object.assign({}, obj, changes);
+   var path = obj.path;
+   delete obj.path;
+   var hash = '#' + path;
+   Object.keys(obj).forEach(function (key) {
+      hash += '#' + encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]);
+   });
+   return hash;
+}
+
+function editorGotoLine (obj) {
+   var editor = ui.state.global.editor;
+   if (!editor) return;
+   if (!editor.scrollToLine) return;
+   var parts = (obj.L || '0').split('-');
+   var st = parseInt(parts[0], 10);
+   var ed = parts[1]?parseInt(parts[1], 10):undefined;
+   editor.scrollToLine(st, ed);
 }
 
 function onHashChange() {
    var obj = parseHash();
    if (obj.path) {
       if (obj.path.startsWith('/')) {
-         ui.panel.browse_tree.asyncExpandTo(obj.path);
-         if (ui.state.global.editor) ui.state.global.editor.dispose();
-         ui.state.empty(ui.panel.contents);
-         ui.state.empty(ui.panel.title);
-         renderBreadcrumb(obj.path);
-         if (!obj.path.endsWith('/')) {
-            onView(obj.path);
+         if (obj.path === ui.state.global.lastHash.path) {
+            // TODO: check sub hash change, e.g. line number selected
+            if (obj.L !== ui.state.global.lastHash.L) {
+               editorGotoLine(obj);
+            }
+         } else {
+            ui.panel.browse_tree.asyncExpandTo(obj.path);
+            if (ui.state.global.editor) ui.state.global.editor.dispose();
+            ui.state.empty(ui.panel.contents);
+            ui.state.empty(ui.panel.title);
+            renderBreadcrumb(obj.path);
+            if (!obj.path.endsWith('/')) {
+               onView(obj.path).then(function () {
+                  editorGotoLine(obj);
+               });
+            }
          }
       } else if (obj.path.startsWith('?')) {
          var query = decodeURIComponent(obj.path.substring(1));
@@ -116,6 +158,7 @@ function onHashChange() {
          }
       }
    }
+   ui.state.global.lastHash = obj;
 }
 
 function onSwitchSidePanel(evt) {
@@ -216,15 +259,17 @@ function onView(path, opt) {
    // TODO: locate to sepcified line number
    if (ui.state.global.editor) ui.state.global.editor.dispose();
    ui.state.empty(ui.panel.contents);
-   Flame.api.project.getFileContents(path).then(
+   return Flame.api.project.getFileContents(path).then(
       function (obj) {
          var editor;
          if (obj.binary) {
             editor = renderNotSupportFileView(obj);
          } else {
             editor = new Flame.editor.SourceCodeViewer(ui.panel.contents, obj.data, {
-               holdOnLineNumber: function (linenumber) {
-                  /* debug */ console.log('hold on:', linenumber);
+               onClickLineNumber: function (linenumber) {
+                  window.location.hash = buildHash({ L: '' + linenumber });
+                  // TODO: trigger fetching metadata for this line in 'analysis' tab
+                  //       e.g. blame, comment, linkage, ...
                }
             });
          }
@@ -260,7 +305,7 @@ function onSearch(query) {
    ui.state.empty(ui.panel.search_result);
    // TODO: convert to code instead of html string
    ui.panel.search_result.innerHTML = '<div><span class="spin spin-sm"></span> Searching ...</div>';
-   Flame.api.project.search(query).then(
+   return Flame.api.project.search(query).then(
       function (result) {
          renderSearchItems(result);
       },

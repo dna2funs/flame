@@ -7,20 +7,26 @@
 
 function SourceCodeViewer(dom, text, opt) {
    // opt:
-   //   - holdOnLineNumber(linenumber)
+   //   - onClickLineNumber(linenumber)
    this.opt = opt || {};
    this.lines = text.split('\n');
 
    this.ui = {
       self: dom,
+      container: document.createElement('div'),
       leftSide: document.createElement('div'),
       lineNumber: document.createElement('div'),
       blame: document.createElement('div'),
       text: document.createElement('pre'),
-      highlight: document.createElement('div')
+      highlight: document.createElement('div'),
+      extra: {
+         highlight: {
+            line: document.createElement('div')
+         }
+      }
    };
 
-   var root = document.createElement('div');
+   var root = this.ui.container;
    root.className = 'editor-container';
    this.render();
 
@@ -44,11 +50,29 @@ function SourceCodeViewer(dom, text, opt) {
    this.ui.self.appendChild(root);
    // post: ui attached to screen
    sideFlex.style.font = getComputedStyle(this.ui.text).font;
+
+   var that = this;
+   this.events = {
+      onClickLineNumber: function (evt) {
+         if (evt.target.tagName.toLowerCase() !== 'a') return;
+         var linenumber = parseInt(evt.target.textContent, 10);
+         if (linenumber <= 0) return;
+         if (linenumber > that.lines.length) return;
+         that.opt.onClickLineNumber && that.opt.onClickLineNumber(linenumber);
+      }
+   };
+   this.ui.lineNumber.addEventListener('click', this.events.onClickLineNumber);
+
+   this.cache = {
+      maxLineWidth: 0
+   };
+   this.computeCache();
 }
 SourceCodeViewer.prototype = {
    render: function () {
       // TODO: show blame info for each line in this.ui.blame (by default display: none)
-      // TODO: syntax highlight for source code text
+      // TODO: syntax highlight for source code text;
+      //       but gurantee each line <span> ... </span><br />
       empty_elem(this.ui.lineNumber);
       empty_elem(this.ui.text);
       var that = this;
@@ -71,8 +95,58 @@ SourceCodeViewer.prototype = {
       if (linenumber > this.lines.length) return null;
       return this.lines[linenumber - 1];
    },
+   computeCache: function () {
+      for (var i = 0, n = this.ui.text.children.length; i < n; i++) {
+         // span br span br span ...
+         var el = this.ui.text.children[i];
+         if (el.tagName.toLowerCase() === 'br') continue;
+         if (this.cache.maxLineWidth < el.offsetWidth) {
+            this.cache.maxLineWidth = el.offsetWidth;
+         }
+      }
+   },
+   lineHighlight: function (startLineNumber, endLineNumber) {
+      // TODO: check start/end line number like in scrollToLine function
+      var hL = this.ui.lineNumber.children[0].offsetHeight;
+      var div = this.ui.extra.highlight.line;
+      div.style.width = this.cache.maxLineWidth + 'px';
+      var top = (startLineNumber - 1) * hL, bottom = (endLineNumber - 1) * hL;
+      div.style.height = (bottom - top) + 'px';
+      div.style.top = top + 'px';
+      div.style.left = '0px';
+      div.style.backgroundColor = 'yellow';
+      div.style.display = 'block';
+      this.ui.highlight.appendChild(div);
+   },
+   scrollToLine: function (startLineNumber, endLineNumber) {
+      var n = this.lines.length;
+      this.ui.extra.highlight.line.style.display = 'none';
+      if (!startLineNumber || startLineNumber === endLineNumber) return;
+      if (startLineNumber > endLineNumber) {
+         startLineNumber += endLineNumber;
+         endLineNumber = startLineNumber - endLineNumber;
+         startLineNumber = startLineNumber - endLineNumber;
+      }
+      if (!endLineNumber) endLineNumber = startLineNumber + 1;
+      if (startLineNumber < 0 || endLineNumber < 0) return;
+      if (startLineNumber > n) return;
+      if (endLineNumber > n + 1) return;
+
+      var hL = this.ui.lineNumber.children[0].offsetHeight;
+      var curTop = this.ui.container.scrollTop, curH = this.ui.container.offsetHeight;
+      var top = (startLineNumber - 1) * hL, bottom = (endLineNumber - 1) * hL;
+      var x = this.ui.container.scrollLeft;
+      if (curTop > top) {
+         this.ui.container.scrollTo(x, top);
+      } else if (curTop + curH < bottom) {
+         var y = top + curH - (bottom - top);
+         if (y > top) y = top;
+         this.ui.container.scrollTo(x, y);
+      }
+      this.lineHighlight(startLineNumber, endLineNumber);
+   },
    dispose: function () {
-      this.onHoldOn.dispose();
+      this.ui.lineNumber.removeEventListener('click', this.events.onClickLineNumber);
    }
 };
 
