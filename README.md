@@ -1,105 +1,58 @@
+# flame
 
-    "Zoekt, en gij zult spinazie eten" - Jan Eertink
+<img src="https://github.com/dna2funs/flame/raw/main/node/static/img/logo.png" alt="FlameLogo" width="72" height="72" />
 
-    ("seek, and ye shall eat spinach" - My primary school teacher)
+a service for source code comprehesion toolkits
 
-This is a fast text search engine, intended for use with source
-code. (Pronunciation: roughly as you would pronounce "zooked" in English)
+### golang: git/p4 server
 
-INSTRUCTIONS
-============
+use https://github.com/google/zoekt as api server framework (all zoekt related logic removed)
 
-Downloading:
+```
+SELF=$(cd `dirname $0`; pwd)
 
-    go get github.com/google/zoekt/
+mkdir -p $SELF/data/{src,keyval}
 
-Indexing:
+# if use cygwin on Windows: ZOEKT_CYGWIN_BASE_DIR=`cygpath -w /`
+KEYVAL_STORAGE_FS_BASE_DIR=`/path/to/data/keyval` \
+ZOEKT_DEBUG=1 \
+ZOEKT_P4_BIN=`which git` \
+ZOEKT_GIT_BIN=`which p4` \
+/path/to/bin/zoekt-webserver -fs_base_dir /path/to/data/src
+```
 
-    go install github.com/google/zoekt/cmd/zoekt-index
-    $GOPATH/bin/zoekt-index .
+##### how to build ctags?
 
-Searching
+ref: https://github.com/universal-ctags
 
-    go install github.com/google/zoekt/cmd/zoekt
-    $GOPATH/bin/zoekt 'ngram f:READ'
+ref: https://github.com/google/zoekt/blob/master/doc/ctags.md
 
-Indexing git repositories:
+```bash
+sudo apt-get install
+  pkg-config autoconf \
+  libseccomp-dev libseccomp \
+  libjansson-dev libjansson 
 
-    go install github.com/google/zoekt/cmd/zoekt-git-index
-    $GOPATH/bin/zoekt-git-index -branches master,stable-1.4 -prefix origin/ .
+./autogen.sh
+LDFLAGS=-static ./configure --enable-json --enable-seccomp
+make -j4
 
-Indexing repo repositories:
+# create tarball
+NAME=ctags-$(date --iso-8601=minutes | tr -d ':' | sed 's|\+.*$||')-$(git show --pretty=format:%h -q)
+mkdir ${NAME}
+cp ctags ${NAME}/universal-ctags
+tar zcf ${NAME}.tar.gz ${NAME}/
+```
 
-    go install github.com/google/zoekt/cmd/zoekt-{repo-index,mirror-gitiles}
-    zoekt-mirror-gitiles -dest ~/repos/ https://gfiber.googlesource.com
-    zoekt-repo-index \
-       -name gfiber \
-       -base_url https://gfiber.googlesource.com/ \
-       -manifest_repo ~/repos/gfiber.googlesource.com/manifests.git \
-       -repo_cache ~/repos \
-       -manifest_rev_prefix=refs/heads/ --rev_prefix= \
-       master:default_unrestricted.xml
+### node: api wrapping server
 
-Starting the web interface
+```
+npm install
 
-    go install github.com/google/zoekt/cmd/zoekt-webserver
-    $GOPATH/bin/zoekt-webserver -listen :6070
+```
 
-A more organized installation on a Linux server should use a systemd unit file,
-eg.
+### node: web ui client
 
-    [Unit]
-    Description=zoekt webserver
-
-    [Service]
-    ExecStart=/zoekt/bin/zoekt-webserver -index /zoekt/index -listen :443  --ssl_cert /zoekt/etc/cert.pem   --ssl_key /zoekt/etc/key.pem
-    Restart=always
-
-    [Install]
-    WantedBy=default.target
-
-
-SEARCH SERVICE
-==============
-
-Zoekt comes with a small service management program:
-
-    go install github.com/google/zoekt/cmd/zoekt-indexserver
-
-    cat << EOF > config.json
-    [{"GithubUser": "username"},
-     {"GithubOrg": "org"},
-     {"GitilesURL": "https://gerrit.googlesource.com", "Name": "zoekt" }
-    ]
-    EOF
-
-    $GOPATH/bin/zoekt-server -mirror_config config.json
-
-This will mirror all repos under 'github.com/username', 'github.com/org', as
-well as the 'zoekt' repository. It will index the repositories.
-
-It takes care of fetching and indexing new data and cleaning up logfiles.
-
-The webserver can be started from a standard service management framework, such
-as systemd.
-
-
-SYMBOL SEARCH
-=============
-
-It is recommended to install [Universal
-ctags](https://github.com/universal-ctags/ctags) to improve
-ranking. See [here](doc/ctags.md) for more information.
-
-
-ACKNOWLEDGEMENTS
-================
-
-Thanks to Alexander Neubeck for coming up with this idea, and helping me flesh
-it out.
-
-
-DISCLAIMER
-==========
-
-This is not an official Google product
+```
+...
+```
