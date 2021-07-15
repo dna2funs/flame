@@ -65,6 +65,16 @@ function AnalysisBlock(name, opt) {
 AnalysisBlock.prototype = {
    dom: function () { return this.ui.self; },
    isFolded: function () { return this.ui.content.style.display === 'none'; },
+   loading: function () {
+      empty_elem(this.ui.content);
+      var div = document.createElement('div');
+      div.className = 'item';
+      var span = document.createElement('span');
+      span.className = 'spin spin-sm';
+      div.appendChild(span);
+      elem_append_text(div, ' Loading ...');
+      this.ui.content.appendChild(div);
+   },
    reset: function (name, obj) {
       empty_elem(this.ui.title);
       empty_elem(this.ui.content);
@@ -94,6 +104,9 @@ function AnalysisBlockManager(dom) {
    this.blocks = {};
 }
 AnalysisBlockManager.prototype = {
+   getBlock: function (id) {
+      return this.blocks[id];
+   },
    showBlock: function (id, name, obj, opt) {
       var block = this.blocks[id];
       if (block) {
