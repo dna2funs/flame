@@ -1,0 +1,25 @@
+.ab-container {
+   width: 100%;
+   border: 1px solid #fbf59f;
+   overflow-x: hidden;
+}
+.ab-title > div {
+   text-overflow: ellipsis;
+   white-space: nowrap;
+   overflow-x: hidden;
+}
+.ab-title-fold {
+   margin: 1px;
+   padding: 1px;
+}
+.ab-title-fold > img {
+   width: 10px;
+   height: 10px;
+}
+.ab-title-fold.active {
+   transform: rotate(180deg);
+}
+.ab-title-close {
+   margin: 1px;
+   padding: 1px;
+}
