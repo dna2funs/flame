@@ -1,6 +1,10 @@
 'use strict';
 //@include js/common.js
 //@include js/api.js
+//@include js/treeview.js
+//@include js/editor.js
+//@include js/analysis.js
+//@include js/collector.js
 
 (function () {
 
@@ -43,7 +47,7 @@ var ui = {
       show: function (el) { el.style.display = 'block'; },
       hide: function (el) { el.style.display = 'none'; },
       empty: function (el) { empty_elem(el); },
-      flash: function (el) { elem_flash(el); },
+      flash: function (el, count) { elem_flash(el, count); },
       append_text: function (el, text) { elem_append_text(el, text); },
       div_message: function (msg, color) {
          var div = document.createElement('div');
@@ -81,6 +85,7 @@ var ui = {
       }, // label
       global: {
          editor: null,
+         metadata: null,
          lastHash: {}
       },
       const: {
@@ -137,6 +142,8 @@ function onHashChange() {
             // TODO: check sub hash change, e.g. line number selected
             if (obj.L !== ui.state.global.lastHash.L) {
                editorGotoLine(obj);
+               // TODO: how to deal with multiple line, like 1-5
+               analysisGotoMetadata(parseInt(obj.L.split('-'), 10));
             }
          } else {
             ui.panel.browse_tree.asyncExpandTo(obj.path);
@@ -148,6 +155,7 @@ function onHashChange() {
                onView(obj.path).then(function () {
                   editorGotoLine(obj);
                });
+               loadMetadata(obj.path);
             }
          }
       } else if (obj.path.startsWith('?')) {
@@ -179,6 +187,46 @@ function onSwitchSidePanel(evt) {
       ui.state.show(ui.panel.side);
       ui.state.nav.selected = id;
    }
+}
+
+function analysisGotoMetadata(linenumber) {
+   if (ui.state.nav.selected !== 'analysis') {
+      onSwitchSidePanel({ target: ui.btn.nav.analysis });
+   }
+   ui.panel.analysis_result.fold('flame://metadata');
+   var obj = ui.state.global.metadata;
+   obj.linenumber = linenumber;
+   ui.panel.analysis_result.showBlock('flame://metadata', 'metadata', obj);
+   ui.panel.analysis_result.unfold('flame://metadata');
+   ui.panel.analysis_result.scrollToBlock('flame://metadata');
+   var block = ui.panel.analysis_result.getBlock('flame://metadata');
+   ui.state.flash(block.dom());
+}
+
+function renderMetadataBlock(path, obj) {
+   ui.state.global.metadata = obj;
+   ui.panel.analysis_result.showBlock('flame://metadata', 'metadata', obj, {
+      disableClose: false,
+      onReset: function (self, obj) {
+         // TODO: render outline, comment, linkage for whole file / specified line
+         console.log(obj);
+         var div = document.createElement('div');
+         div.className = 'item item-blue';
+         ui.state.append_text(div, 'TODO: show metadata');
+         self.ui.content.appendChild(div);
+      }
+   });
+   ui.panel.analysis_result.unfold('flame://metadata');
+}
+
+function loadMetadata(path) {
+   // TODO: if change to new file, cancel prev req
+   return Flame.api.project.getMetadata(path).then(
+      function (obj) {
+         renderMetadataBlock(path, obj);
+      },
+      function (err) {}
+   );
 }
 
 /*
@@ -275,7 +323,7 @@ function onView(path, opt) {
          }
          ui.state.global.editor = editor;
       },
-      function () {}
+      function (err) {}
    );
 }
 

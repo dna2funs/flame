@@ -100,6 +100,11 @@ AnalysisBlock.prototype = {
 
 function AnalysisBlockManager(dom) {
    this.self = dom;
+   //                                         v pnl-side
+   //                              v (div)
+   //                   v pnl-side-analysis
+   //               v analysis_pnl-item
+   this.container = dom.parentNode.parentNode.parentNode
    empty_elem(dom);
    this.blocks = {};
 }
@@ -125,6 +130,21 @@ AnalysisBlockManager.prototype = {
       this.blocks[id] = block;
       this.self.appendChild(block.dom());
       return block;
+   },
+   scrollToBlock: function (id) {
+      var block = this.blocks[id];
+      if (!block) return;
+      var curTop = this.container.scrollTop, curH = this.container.offsetHeight;
+      var dom = block.dom();
+      var top = dom.offsetTop - this.container.offsetTop, bottom = top + dom.offsetHeight;
+      var x = this.container.scrollLeft;
+      if (curTop > top) {
+         this.container.scrollTo(x, top);
+      } else if (curTop + curH < bottom) {
+         var y = top + curH - (bottom - top);
+         if (y > top) y = top;
+         this.container.scrollTo(x, y);
+      }
    },
    fold: function (id) {
       var block = this.blocks[id];

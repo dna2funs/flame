@@ -3,6 +3,12 @@
 (function (window, document) {
 
 
+function debugRepeat(ch, n) {
+   var str = '';
+   for (var i = 0; i < n; i++) str += ch;
+   return str;
+}
+
 // TODO: multiple request together
 // do we cancel prev or bounce the request
 // e.g. search, search, search
@@ -18,15 +24,15 @@ var api = {
    }, // user
    project: {
       getList: function () {
-         return Promise.resolve([
-            { name: 'test1/' }, { name: 'test2/' }, { name: 'test3/' }
-         ]);
+         var list = [];
+         for (var i = 0, n = 50; i < n; i++) list.push({ name: 'test' + i + '/' });
+         return Promise.resolve(list);
       }, // getList
       getDirectoryContents: function (path) {
          // e.g. convert / request to api.project.getList
          // otherwise get dir contents
          if (!path || path === '/') return api.project.getList();
-         if (path && path.split('/').length > 3) {
+         if (path && path.split('/').length > 20) {
             return Promise.resolve([
                { name: 'README.md' },
                { name: 'test.js' }
@@ -41,9 +47,32 @@ var api = {
       getFileContents: function (path) {
          return Promise.resolve({
             binary: false,
-            data: 'This is a test readme file.'
+            data: (
+               'This is a test readme file.\n\ntest for l' +
+               debugRepeat('o', 200) +
+               'ng line\n\n' +
+               debugRepeat('\n', 70) +
+               'test for scrollable'
+            )
          });
       }, // getFileContents
+      getMetadata: function (path, opt) {
+         // TODO: load partially / on demand
+         return Promise.resolve({
+            // partial flag, [startLineNumber, endLineNumber]
+            range: [1, 500],
+            comment: [
+               { user: 'flame', markdown: '`test` [test](test.com)' },
+               { user: 'test', markdown: '`test` [test](test.com)' }
+            ],
+            symbol: [
+               { name: 'test', linenumber: 5 }
+            ],
+            linkage: [
+               { link: '/test0/README.md', tag: ['definition'], linenumber: 6 }
+            ]
+         });
+      },
       search: function (query, n) {
          return Promise.resolve({
             matchRegexp: '[Tt]his is',

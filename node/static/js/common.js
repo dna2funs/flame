@@ -14,7 +14,11 @@ function on(elem, name, fn) {
 
 function ajax(options, done_fn, fail_fn) {
    var xhr = new XMLHttpRequest(), payload = null;
-   xhr.open(options.method || 'POST', options.url + (options.data ? uriencode(options.data) : ''), true);
+   xhr.open(
+      options.method || 'POST',
+      options.url + (options.data ? uriencode(options.data) : ''),
+      true
+   );
    xhr.addEventListener('readystatechange', function (evt) {
       if (evt.target.readyState === 4 /*XMLHttpRequest.DONE*/) {
          if (~~(evt.target.status / 100) === 2) {
@@ -24,11 +28,20 @@ function ajax(options, done_fn, fail_fn) {
          }
       }
    });
+   if (options.headers) {
+      Object.keys(options.headers).forEach(function (key) {
+         if (!options.headers[key]) return;
+         xhr.setRequestHeader(key, options.headers[key]);
+      });
+   }
    if (options.json) {
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       payload = JSON.stringify(options.json);
+   } else if (options.raw) {
+      payload = options.raw;
    }
    xhr.send(payload);
+   return xhr;
 }
 
 function html(url, done_fn, fail_fn) {
