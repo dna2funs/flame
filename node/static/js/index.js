@@ -189,6 +189,49 @@ function onSwitchSidePanel(evt) {
    }
 }
 
+function analysisShowBookmark(data) {
+   var name = 'flame://bookmark';
+   var block = ui.panel.analysis_result.getBlock(name);
+   if (block) {
+      ui.panel.analysis_result.showBlock(name, 'bookmark', data);
+   } else {
+      ui.panel.analysis_result.showBlock(name, 'bookmark', data, {
+         disableClose: true,
+         onReset: function (self, obj) {
+            var div;
+            if (!obj || !obj.items || !obj.items.length) {
+               div = document.createElement('div');
+               div.className = 'item item-red';
+               ui.state.append_text(div, 'No Item');
+               self.ui.content.appendChild(div);
+               return;
+            }
+            // TODO: render bookmark items
+         }
+      });
+   }
+}
+
+function analysisShowMetadata(data) {
+   var name = 'flame://metadata';
+   var block = ui.panel.analysis_result.getBlock(name);
+   if (block) {
+      ui.panel.analysis_result.showBlock(name, 'metadata', data);
+   } else {
+      ui.panel.analysis_result.showBlock(name, 'metadata', data, {
+         disableClose: false,
+         onReset: function (self, obj) {
+            // TODO: render outline, comment, linkage for whole file / specified line
+            console.log(obj);
+            var div = document.createElement('div');
+            div.className = 'item item-blue';
+            ui.state.append_text(div, 'TODO: show metadata');
+            self.ui.content.appendChild(div);
+         }
+      });
+   }
+}
+
 function analysisGotoMetadata(linenumber) {
    if (ui.state.nav.selected !== 'analysis') {
       onSwitchSidePanel({ target: ui.btn.nav.analysis });
@@ -196,7 +239,7 @@ function analysisGotoMetadata(linenumber) {
    ui.panel.analysis_result.fold('flame://metadata');
    var obj = ui.state.global.metadata;
    obj.linenumber = linenumber;
-   ui.panel.analysis_result.showBlock('flame://metadata', 'metadata', obj);
+   analysisShowMetadata(obj);
    ui.panel.analysis_result.unfold('flame://metadata');
    ui.panel.analysis_result.scrollToBlock('flame://metadata');
    var block = ui.panel.analysis_result.getBlock('flame://metadata');
@@ -205,17 +248,7 @@ function analysisGotoMetadata(linenumber) {
 
 function renderMetadataBlock(path, obj) {
    ui.state.global.metadata = obj;
-   ui.panel.analysis_result.showBlock('flame://metadata', 'metadata', obj, {
-      disableClose: false,
-      onReset: function (self, obj) {
-         // TODO: render outline, comment, linkage for whole file / specified line
-         console.log(obj);
-         var div = document.createElement('div');
-         div.className = 'item item-blue';
-         ui.state.append_text(div, 'TODO: show metadata');
-         self.ui.content.appendChild(div);
-      }
-   });
+   analysisShowMetadata(obj);
    ui.panel.analysis_result.unfold('flame://metadata');
 }
 
@@ -424,20 +457,7 @@ function initComponent() {
    ui.panel.analysis_result = new Flame.component.AnalysisBlockManager(
       ui.panel.analysis_result
    );
-   ui.panel.analysis_result.showBlock('flame://bookmark', 'bookmark', {}, {
-      disableClose: true,
-      onReset: function (self, obj) {
-         var div;
-         if (!obj || !obj.items || !obj.items.length) {
-            div = document.createElement('div');
-            div.className = 'item item-red';
-            ui.state.append_text(div, 'No Item');
-            self.ui.content.appendChild(div);
-            return;
-         }
-         // TODO: render bookmark items
-      }
-   });
+   analysisShowBookmark();
 
    onHashChange();
 
