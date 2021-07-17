@@ -22,6 +22,7 @@ function AnalysisBlock(name, opt) {
    //   - onDispose
    //   - onReset
    this.opt = opt || {};
+   this.name = name;
    this.ui = {
       self: document.createElement('div'),
       title: document.createElement('div'),
@@ -78,6 +79,11 @@ AnalysisBlock.prototype = {
    reset: function (name, obj) {
       empty_elem(this.ui.title);
       empty_elem(this.ui.content);
+      if (name) {
+         this.name = name;
+      } else {
+         name = this.name;
+      }
       elem_append_text(this.ui.title, name);
       this.opt.onReset && this.opt.onReset(this, obj);
    },

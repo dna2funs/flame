@@ -62,14 +62,18 @@ var api = {
             // partial flag, [startLineNumber, endLineNumber]
             range: [1, 500],
             comment: [
-               { user: 'flame', markdown: '`test` [test](test.com)' },
+               { user: 'flame', markdown: '`test` [test](test.com)', linenumber: 8 },
                { user: 'test', markdown: '`test` [test](test.com)' }
             ],
             symbol: [
-               { name: 'test', linenumber: 5 }
+               { name: 'test', type: 'variable', linenumber: 5 }
             ],
             linkage: [
-               { link: '/test0/README.md', tag: ['definition'], linenumber: 6 }
+               {
+                  linenumber: 2,
+                  in: { link: '/test0/README.md', tag: ['definition'], linenumber: 6 },
+                  out: { link: '/test4/README.md', tag: ['reference'], linenumber: 20 }
+               }
             ]
          });
       },

@@ -147,6 +147,55 @@ function analysisShowBookmark(data) {
    }
 }
 
+function analysisBuildNoContent(block) {
+   block.reset();
+   block.ui.content.appendChild(ui.state.div_message('No Contents'));
+}
+
+function analysisBuildMetadata(obj, subblock) {
+   var hash = parseHash();
+   if (obj && obj.symbol.length) {
+      subblock.symbol.reset();
+      obj.symbol.forEach(function (symbol) {
+         var div = document.createElement('div');
+         div.className = 'item-thin item-blue';
+         if (hash.path && hash.path.startsWith('/') && symbol.linenumber) {
+            var a = document.createElement('a');
+            ui.state.append_text(a, '' + symbol.linenumber);
+            a.href = '#' + hash.path + '#L=' + symbol.linenumber;
+            div.appendChild(a);
+         }
+         ui.state.append_text(div, ' ' + symbol.name + ' (' + symbol.type + ')');
+         subblock.symbol.ui.content.appendChild(div);
+      });
+   } else {
+      analysisBuildNoContent(subblock.symbol);
+   }
+   if (obj && obj.comment.length) {
+      subblock.comment.reset();
+      obj.comment.forEach(function (comment) {
+         var div = document.createElement('div');
+         div.className = 'item-thin item-blue';
+         if (hash.path && hash.path.startsWith('/') && comment.linenumber) {
+            var a = document.createElement('a');
+            ui.state.append_text(a, '' + comment.linenumber);
+            a.href = '#' + hash.path + '#L=' + comment.linenumber;
+            div.appendChild(a);
+         }
+         ui.state.append_text(div, ' ' + comment.user + ': ' + comment.markdown);
+         subblock.comment.ui.content.appendChild(div);
+      });
+   } else {
+      analysisBuildNoContent(subblock.comment);
+   }
+   if (obj && obj.linkage.length) {
+      subblock.linkage.reset();
+      subblock.linkage.ui.content.appendChild(ui.state.div_message('TODO: show linkage info', 'orange'));
+   } else {
+      analysisBuildNoContent(subblock.linkage);
+   }
+}
+
 function analysisShowMetadata(data) {
    var name = 'flame://metadata';
    var block = ui.panel.analysis_result.getBlock(name);
@@ -160,20 +209,43 @@ function analysisShowMetadata(data) {
                self.loading();
                return;
             }
-            console.log(obj);
+            self.ui.subblock = {
+               symbol: new Flame.component.AnalysisBlock('symbol', { disableClose: true }),
+               comment: new Flame.component.AnalysisBlock('comment', { disableClose: true }),
+               linkage: new Flame.component.AnalysisBlock('linkage', { disableClose: true }),
+            };
+            if (!self.ui.subblock.symbol.dom().parentNode) {
+               self.ui.content.appendChild(self.ui.subblock.symbol.dom());
+               self.ui.content.appendChild(self.ui.subblock.comment.dom());
+               self.ui.content.appendChild(self.ui.subblock.linkage.dom());
+            }
+            analysisBuildMetadata(obj, self.ui.subblock);
             var div;
             if (obj.linenumber) {
                // TODO: show metadata for specified line
                div = document.createElement('div');
                div.className = 'item item-blue';
                ui.state.append_text(div, 'TODO: show Line ' + obj.linenumber + ' metadata');
-               self.ui.content.appendChild(div);
+               self.ui.content.insertBefore(div, self.ui.content.children[0]);
+               self.ui.subblock.symbol.show();
+               self.ui.subblock.comment.show();
+               self.ui.subblock.linkage.show();
             } else {
                // TODO: show metadata for file
                div = document.createElement('div');
                div.className = 'item item-blue';
                ui.state.append_text(div, 'TODO: show File(' + ui.state.global.lastHash.path + ') metadata');
-               self.ui.content.appendChild(div);
+               self.ui.content.insertBefore(div, self.ui.content.children[0]);
+               self.ui.subblock.symbol.show();
+               self.ui.subblock.comment.hide();
+               self.ui.subblock.linkage.hide();
+            }
+         },
+         onDispose: function (self) {
+            if (self.ui.subblock) {
+               self.ui.subblock.symbol.dispose();
+               self.ui.subblock.comment.dispose();
+               self.ui.subblock.linkage.dispose();
             }
          }
       });
