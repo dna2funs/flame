@@ -124,71 +124,6 @@ function buildHash(changes) {
    return hash;
 }
 
-function editorGotoLine (obj) {
-   var editor = ui.state.global.editor;
-   if (!editor) return;
-   if (!editor.scrollToLine) return;
-   var parts = (obj.L || '0').split('-');
-   var st = parseInt(parts[0], 10);
-   var ed = parts[1]?parseInt(parts[1], 10):undefined;
-   editor.scrollToLine(st, ed);
-}
-
-function onHashChange() {
-   var obj = parseHash();
-   if (obj.path) {
-      if (obj.path.startsWith('/')) {
-         if (obj.path === ui.state.global.lastHash.path) {
-            // TODO: check sub hash change, e.g. line number selected
-            if (obj.L !== ui.state.global.lastHash.L) {
-               editorGotoLine(obj);
-               // TODO: how to deal with multiple line, like 1-5
-               analysisGotoMetadata(parseInt(obj.L.split('-'), 10));
-            }
-         } else {
-            ui.panel.browse_tree.asyncExpandTo(obj.path);
-            if (ui.state.global.editor) ui.state.global.editor.dispose();
-            ui.state.empty(ui.panel.contents);
-            ui.state.empty(ui.panel.title);
-            renderBreadcrumb(obj.path);
-            if (!obj.path.endsWith('/')) {
-               onView(obj.path).then(function () {
-                  editorGotoLine(obj);
-               });
-               loadMetadata(obj.path);
-            }
-         }
-      } else if (obj.path.startsWith('?')) {
-         var query = decodeURIComponent(obj.path.substring(1));
-         onSearch(query);
-         if (ui.state.nav.selected !== 'search') {
-            onSwitchSidePanel({ target: ui.btn.nav.search });
-         }
-      }
-   }
-   ui.state.global.lastHash = obj;
-}
-
-function onSwitchSidePanel(evt) {
-   var id = evt.target.getAttribute('id').split('-')[1];
-   if (!id) return;
-   if (ui.state.nav.selected === id) {
-      ui.state.nav.selected = null;
-      ui.state.hide(ui.panel.side);
-      ui.state.nav.deselect(ui.btn.nav[id]);
-   } else {
-      var all = ['search', 'browse', 'analysis', 'team', 'settings'];
-      all.forEach(function (one) {
-         ui.state.hide(ui.panel[one]);
-         ui.state.nav.deselect(ui.btn.nav[one]);
-      });
-      ui.state.nav.select(ui.btn.nav[id]);
-      ui.state.show(ui.panel[id]);
-      ui.state.show(ui.panel.side);
-      ui.state.nav.selected = id;
-   }
-}
-
 function analysisShowBookmark(data) {
    var name = 'flame://bookmark';
    var block = ui.panel.analysis_result.getBlock(name);
@@ -218,15 +153,28 @@ function analysisShowMetadata(data) {
    if (block) {
       ui.panel.analysis_result.showBlock(name, 'metadata', data);
    } else {
-      ui.panel.analysis_result.showBlock(name, 'metadata', data, {
+      var block = ui.panel.analysis_result.showBlock(name, 'metadata', data, {
          disableClose: false,
          onReset: function (self, obj) {
-            // TODO: render outline, comment, linkage for whole file / specified line
+            if (obj && obj.loading) {
+               self.loading();
+               return;
+            }
             console.log(obj);
-            var div = document.createElement('div');
-            div.className = 'item item-blue';
-            ui.state.append_text(div, 'TODO: show metadata');
-            self.ui.content.appendChild(div);
+            var div;
+            if (obj.linenumber) {
+               // TODO: show metadata for specified line
+               div = document.createElement('div');
+               div.className = 'item item-blue';
+               ui.state.append_text(div, 'TODO: show Line ' + obj.linenumber + ' metadata');
+               self.ui.content.appendChild(div);
+            } else {
+               // TODO: show metadata for file
+               div = document.createElement('div');
+               div.className = 'item item-blue';
+               ui.state.append_text(div, 'TODO: show File(' + ui.state.global.lastHash.path + ') metadata');
+               self.ui.content.appendChild(div);
+            }
          }
       });
    }
@@ -238,7 +186,11 @@ function analysisGotoMetadata(linenumber) {
    }
    ui.panel.analysis_result.fold('flame://metadata');
    var obj = ui.state.global.metadata;
-   obj.linenumber = linenumber;
+   if (linenumber) {
+      obj.linenumber = linenumber;
+   } else {
+      delete obj.linenumber;
+   }
    analysisShowMetadata(obj);
    ui.panel.analysis_result.unfold('flame://metadata');
    ui.panel.analysis_result.scrollToBlock('flame://metadata');
@@ -246,20 +198,20 @@ function analysisGotoMetadata(linenumber) {
    ui.state.flash(block.dom());
 }
 
+function editorGotoLine (obj) {
+   var editor = ui.state.global.editor;
+   if (!editor) return;
+   if (!editor.scrollToLine) return;
+   var parts = (obj.L || '0').split('-');
+   var st = parseInt(parts[0], 10);
+   var ed = parts[1]?parseInt(parts[1], 10):undefined;
+   editor.scrollToLine(st, ed);
+}
+
 function renderMetadataBlock(path, obj) {
    ui.state.global.metadata = obj;
    analysisShowMetadata(obj);
    ui.panel.analysis_result.unfold('flame://metadata');
-}
-
-function loadMetadata(path) {
-   // TODO: if change to new file, cancel prev req
-   return Flame.api.project.getMetadata(path).then(
-      function (obj) {
-         renderMetadataBlock(path, obj);
-      },
-      function (err) {}
-   );
 }
 
 /*
@@ -308,6 +260,7 @@ function renderSearchItem(item, opt) {
    div.appendChild(match);
    return div;
 }
+
 function renderSearchItems(result) {
    ui.state.empty(ui.panel.search_result);
    if (!result.items || !result.items.length) {
@@ -335,6 +288,79 @@ function renderNotSupportFileView(obj) {
    return { dispose: function () {} };
 }
 
+function renderBreadcrumb(path) {
+   var parts = path.split('/');
+   parts.shift();
+   var last = parts.pop();
+   if (!last) last = parts.pop();
+   if (!last) return;
+   ui.state.append_text(ui.panel.title, '# / ');
+   var curpath = '/';
+   parts.forEach(function (name) {
+      curpath += name + '/';
+      var a = document.createElement('a');
+      ui.state.append_text(a, name);
+      a.href = '#' + curpath;
+      a.setAttribute('data-path', curpath);
+      ui.panel.title.appendChild(a);
+      ui.state.append_text(ui.panel.title, ' / ')
+   });
+   ui.state.append_text(ui.panel.title, last);
+}
+
+function onHashChange() {
+   var obj = parseHash();
+   if (obj.path) {
+      if (obj.path.startsWith('/')) {
+         if (obj.path === ui.state.global.lastHash.path) {
+            editorGotoLine(obj);
+            // TODO: check sub hash change, e.g. line number selected
+            // TODO: how to deal with multiple line, like 1-5
+            analysisGotoMetadata(obj.L?parseInt(obj.L.split('-'), 10):null);
+         } else {
+            ui.panel.browse_tree.asyncExpandTo(obj.path);
+            if (ui.state.global.editor) ui.state.global.editor.dispose();
+            ui.state.empty(ui.panel.contents);
+            ui.state.empty(ui.panel.title);
+            renderBreadcrumb(obj.path);
+            if (!obj.path.endsWith('/')) {
+               onView(obj.path).then(function () {
+                  editorGotoLine(obj);
+               });
+               onLoadMetadata(obj.path, obj.L?parseInt(obj.L.split('-'), 10):null);
+            }
+         }
+      } else if (obj.path.startsWith('?')) {
+         var query = decodeURIComponent(obj.path.substring(1));
+         onSearch(query);
+         if (ui.state.nav.selected !== 'search') {
+            onSwitchSidePanel({ target: ui.btn.nav.search });
+         }
+      }
+   }
+   ui.state.global.lastHash = obj;
+}
+
+function onSwitchSidePanel(evt) {
+   var id = evt.target.getAttribute('id').split('-')[1];
+   if (!id) return;
+   if (ui.state.nav.selected === id) {
+      ui.state.nav.selected = null;
+      ui.state.hide(ui.panel.side);
+      ui.state.nav.deselect(ui.btn.nav[id]);
+   } else {
+      var all = ['search', 'browse', 'analysis', 'team', 'settings'];
+      all.forEach(function (one) {
+         ui.state.hide(ui.panel[one]);
+         ui.state.nav.deselect(ui.btn.nav[one]);
+      });
+      ui.state.nav.select(ui.btn.nav[id]);
+      ui.state.show(ui.panel[id]);
+      ui.state.show(ui.panel.side);
+      ui.state.nav.selected = id;
+   }
+}
+
 function onView(path, opt) {
    if (!opt) opt = {};
    // TODO: locate to sepcified line number
@@ -358,26 +384,6 @@ function onView(path, opt) {
       },
       function (err) {}
    );
-}
-
-function renderBreadcrumb(path) {
-   var parts = path.split('/');
-   parts.shift();
-   var last = parts.pop();
-   if (!last) last = parts.pop();
-   if (!last) return;
-   ui.state.append_text(ui.panel.title, '# / ');
-   var curpath = '/';
-   parts.forEach(function (name) {
-      curpath += name + '/';
-      var a = document.createElement('a');
-      ui.state.append_text(a, name);
-      a.href = '#' + curpath;
-      a.setAttribute('data-path', curpath);
-      ui.panel.title.appendChild(a);
-      ui.state.append_text(ui.panel.title, ' / ')
-   });
-   ui.state.append_text(ui.panel.title, last);
 }
 
 function onSearch(query) {
@@ -422,6 +428,18 @@ function onClickBreadcrumb(evt) {
    var path = evt.target.getAttribute('data-path');
    if (!path) return;
    ui.panel.browse_tree.asyncExpandTo(path);
+}
+
+function onLoadMetadata(path, linenumber) {
+   // TODO: if change to new file, cancel prev req
+   analysisShowMetadata({ loading: true });
+   return Flame.api.project.getMetadata(path).then(
+      function (obj) {
+         if (linenumber) obj.linenumber = linenumber;
+         renderMetadataBlock(path, obj);
+      },
+      function (err) {}
+   );
 }
 
 function initEvent() {

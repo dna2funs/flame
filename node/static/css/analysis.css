@@ -3,6 +3,7 @@
    background-color: #fbf59f;
    overflow-x: hidden;
    padding: 2px;
+   margin-bottom: 2px;
 }
 .ab-title > div {
    text-overflow: ellipsis;
