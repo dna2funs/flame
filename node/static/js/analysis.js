@@ -127,9 +127,9 @@ AnalysisBlockManager.prototype = {
       }
       var fn = opt.onDispose;
       var that = this;
-      opt.onDispose = function () {
+      opt.onDispose = function (self) {
          delete that.blocks[id];
-         fn && fn();
+         fn && fn(self);
       };
       block = new AnalysisBlock(name, opt);
       block.reset(name, obj);

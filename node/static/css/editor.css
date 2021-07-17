@@ -19,6 +19,13 @@
 }
 .editor-linenumber > a {
    cursor: pointer;
+   display: inline-block;
+   width: 100%;
+}
+.editor-linenumber > a.active {
+   border-right: 3px solid blue;
+   padding-right: 1px;
+   background-color: #ccf;
 }
 .editor-text {
    border: none;

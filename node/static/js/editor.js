@@ -89,6 +89,39 @@ SourceCodeViewer.prototype = {
          that.ui.text.appendChild(span);
       });
    },
+   bindMetadata: function (metadata) {
+      // TODO: update metadata, e.g. if one line has some symbols, highlight its line number
+      console.log('bind:', metadata);
+      for (var i = 0, n = this.ui.lineNumber.children.length; i < n; i += 2) {
+         var el = this.ui.lineNumber.children[i];
+         el.classList.remove('active');
+      }
+      var map = {}, info;
+      if (!metadata) return;
+      info = metadata.symbol;
+      info && info.forEach(function (x) {
+         if (!x.linenumber) return;
+         map[x.linenumber] = true;
+      });
+      info = metadata.comment;
+      info && info.forEach(function (x) {
+         if (!x.linenumber) return;
+         map[x.linenumber] = true;
+      });
+      info = metadata.linkage;
+      info && info.forEach(function (x) {
+         if (!x.linenumber) return;
+         map[x.linenumber] = true;
+      });
+      var that = this;
+      Object.keys(map).forEach(function (lnstr) {
+         var linenumber = parseInt(lnstr, 10);
+         var el = that.ui.lineNumber.children[linenumber * 2 - 2];
+         if (!el) return;
+         // TODO: in future, more active-1, active-2, ...
+         el.classList.add('active');
+      });
+   },
    getLine: function (linenumber) {
       if (isNaN(linenumber)) return null;
       if (linenumber <= 0) return null;

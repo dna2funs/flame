@@ -70,8 +70,11 @@ var api = {
             ],
             linkage: [
                {
-                  linenumber: 2,
-                  in: { link: '/test0/README.md', tag: ['definition'], linenumber: 6 },
+                  ref: 'test', linenumber: 2,
+                  in: { link: '/test0/README.md', tag: ['definition'], linenumber: 6 }
+               },
+               {
+                  ref: 'test', linenumber: 2,
                   out: { link: '/test4/README.md', tag: ['reference'], linenumber: 20 }
                }
             ]
