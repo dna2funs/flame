@@ -2,6 +2,7 @@
 //@include js/common.js
 //@include js/api.js
 //@include js/treeview.js
+//@include js/markdown.js
 //@include js/editor.js
 //@include js/analysis.js
 //@include js/collector.js
@@ -193,7 +194,10 @@ function analysisBuildMetadata(obj, subblock) {
             a.href = '#' + hash.path + '#L=' + comment.linenumber;
             div.appendChild(a);
          }
-         ui.state.append_text(div, ' ' + comment.user + ': ' + comment.markdown);
+         ui.state.append_text(div, ' ' + comment.user + ': ')
+         var md = new Flame.component.MarkDown();
+         md.render(comment.markdown);
+         div.appendChild(md.dom());
          subblock.comment.ui.content.appendChild(div);
       });
    } else {
@@ -258,25 +262,22 @@ function analysisShowMetadata(data) {
             }
             analysisBuildMetadata(obj, self.ui.subblock);
             var div;
+            var name = ui.state.global.lastHash.path.split('/').pop();
             if (obj.linenumber) {
-               // TODO: show metadata for specified line
                div = document.createElement('div');
                div.className = 'item-thin item-yellow';
-               ui.state.append_text(div, ' Line ' + obj.linenumber);
+               ui.state.append_text(div, name + '#' + obj.linenumber);
                self.ui.content.insertBefore(div, self.ui.content.children[0]);
-               self.ui.subblock.symbol.show();
-               self.ui.subblock.comment.show();
-               self.ui.subblock.linkage.show();
             } else {
                // TODO: show metadata for file
                div = document.createElement('div');
-               div.className = 'item item-blue';
-               ui.state.append_text(div, 'TODO: show File(' + ui.state.global.lastHash.path + ') metadata');
+               div.className = 'item-thin item-yellow';
+               ui.state.append_text(div, name);
                self.ui.content.insertBefore(div, self.ui.content.children[0]);
-               self.ui.subblock.symbol.show();
-               self.ui.subblock.comment.hide();
-               self.ui.subblock.linkage.hide();
             }
+            self.ui.subblock.symbol.show();
+            self.ui.subblock.comment.show();
+            self.ui.subblock.linkage.show();
          },
          onDispose: function (self) {
             if (self.ui.subblock) {

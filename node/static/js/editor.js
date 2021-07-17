@@ -90,8 +90,6 @@ SourceCodeViewer.prototype = {
       });
    },
    bindMetadata: function (metadata) {
-      // TODO: update metadata, e.g. if one line has some symbols, highlight its line number
-      console.log('bind:', metadata);
       for (var i = 0, n = this.ui.lineNumber.children.length; i < n; i += 2) {
          var el = this.ui.lineNumber.children[i];
          el.classList.remove('active');
