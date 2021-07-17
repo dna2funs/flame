@@ -49,7 +49,9 @@ function SourceCodeViewer(dom, text, opt) {
    empty_elem(this.ui.self);
    this.ui.self.appendChild(root);
    // post: ui attached to screen
-   sideFlex.style.font = getComputedStyle(this.ui.text).font;
+   var text_style = getComputedStyle(this.ui.text);
+   sideFlex.style.fontFamily = text_style.fontFamily;
+   sideFlex.style.fontSize = text_style.fontSize;
 
    var that = this;
    this.events = {

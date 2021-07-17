@@ -354,8 +354,9 @@ function renderSearchItem(item, opt) {
    match.style.width = '100%';
    match.style.overflowX = 'auto';
    var lineno = document.createElement('div');
-   lineno.className = 'editor-linenumber';
-   lineno.style.font = ui.state.const.pre_font;
+   lineno.className = 'editor-left-side';
+   lineno.style.fontFamily = ui.state.const.pre_font.family;
+   lineno.style.fontSize = ui.state.const.pre_font.size;
    var pre = document.createElement('pre');
    pre.className = 'editor-text flex-auto';
    item.matches.forEach(function (match, i) {
@@ -613,7 +614,11 @@ function initComponent() {
 
    var pre = document.createElement('pre');
    document.body.appendChild(pre);
-   ui.state.const.pre_font = getComputedStyle(pre).font;
+   var pre_style = getComputedStyle(pre);
+   ui.state.const.pre_font = {
+      family: pre_style.fontFamily,
+      size: pre_style.fontSize
+   };
    document.body.removeChild(pre);
 }
 
