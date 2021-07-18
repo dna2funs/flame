@@ -74,9 +74,62 @@ CancelableAjaxRequest.prototype = {
    }
 };
 
+function TaskExecutor () {
+   this.runner = {};
+   this.task = [];
+   this.running = false;
+}
+TaskExecutor.prototype = {
+   _run: function () {
+      if (this.running) return;
+      if (!this.task.length) return;
+      this.running = true;
+      var task = this.task.shift();
+      var promiseFn = this.runner[task.task];
+      try {
+         if (promiseFn) {
+            var that = this;
+            promiseFn(task).then(
+               function (res) {
+                  task.promise.r({ task: task.name, out: res });
+                  that.running = false;
+                  that._run();
+               },
+               function (err) {
+                  task.promise.e({ task: task.name, err: err });
+                  that.running = false;
+                  that._run();
+               }
+            )
+         } else {
+            throw 'no_runner';
+         }
+      } catch(err) {
+         task.promise.e({ task: task.name, err: err });
+         this.running = false;
+         this._run();
+      }
+   },
+   register: function (name, promiseFn) {
+      this.runner[name] = promiseFn;
+   },
+   exec: function (name, obj) {
+      var that = this;
+      return new Promise(function (r, e) {
+         var task = Object.assign({
+            task: name,
+            promise: { r: r, e: e }
+         }, obj);
+         that.task.push(task);
+         that._run();
+      });
+   }
+};
+
 window.Flame = window.Flame || {};
 window.Flame.component = Object.assign(window.Flame.component || {}, {
-   Collector: Collector
+   Collector: Collector,
+   TaskExecutor: TaskExecutor
 });
 
 })();

@@ -21,6 +21,14 @@
 .ab-title-fold.active {
    transform: rotate(180deg);
 }
+.ab-btn {
+   margin: 1px;
+   padding: 1px;
+}
+.ab-btn > img {
+   width: 10px;
+   height: 10px;
+}
 .ab-title-close {
    margin: 1px;
    padding: 1px;

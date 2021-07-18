@@ -87,6 +87,7 @@ var ui = {
       }, // label
       global: {
          bookmark: new Flame.component.BookMark(),
+         task: new Flame.component.TaskExecutor(),
          editor: null,
          metadata: null,
          lastHash: {}
@@ -228,31 +229,50 @@ function analysisShowMetadata(data) {
                self.loading();
                return;
             }
+
+            var path = ui.state.global.lastHash.path;
+            var name = path.split('/').pop();
+            var div = document.createElement('div');
+            var a_bookmark = document.createElement('button');
+            var img = document.createElement('img');
+            img.src = 'img/bookmark.svg';
+            a_bookmark.appendChild(img);
+            a_bookmark.className = 'ab-btn';
+            div.className = 'item-thin item-yellow';
+            div.appendChild(a_bookmark);
+            if (obj.linenumber) {
+               ui.state.append_text(div, ' ' + name + '#' + obj.linenumber);
+            } else {
+               ui.state.append_text(div, ' ' + name);
+            }
+
             self.ui.subblock = {
                symbol: new Flame.component.AnalysisBlock('symbol', { disableClose: true }),
                comment: new Flame.component.AnalysisBlock('comment', { disableClose: true }),
                linkage: new Flame.component.AnalysisBlock('linkage', { disableClose: true }),
             };
             if (!self.ui.subblock.symbol.dom().parentNode) {
+               // run once when init
                self.ui.content.appendChild(self.ui.subblock.symbol.dom());
                self.ui.content.appendChild(self.ui.subblock.comment.dom());
                self.ui.content.appendChild(self.ui.subblock.linkage.dom());
+
+               self._ui = {
+                  bookmark: a_bookmark
+               };
+               self._events = {
+                  onBookmark: function (evt) {
+                     ui.state.global.task.exec('add_to_bookmark', {
+                        name: name,
+                        path: path,
+                        linenumber: obj && obj.linenumber
+                     });
+                  }
+               };
+               self._ui.bookmark.addEventListener('click', self._events.onBookmark);
             }
             analysisBuildMetadata(obj, self.ui.subblock);
-            var div;
-            var name = ui.state.global.lastHash.path.split('/').pop();
-            if (obj.linenumber) {
-               div = document.createElement('div');
-               div.className = 'item-thin item-yellow';
-               ui.state.append_text(div, name + '#' + obj.linenumber);
-               self.ui.content.insertBefore(div, self.ui.content.children[0]);
-            } else {
-               // TODO: show metadata for file
-               div = document.createElement('div');
-               div.className = 'item-thin item-yellow';
-               ui.state.append_text(div, name);
-               self.ui.content.insertBefore(div, self.ui.content.children[0]);
-            }
+            self.ui.content.insertBefore(div, self.ui.content.children[0]);
             self.ui.subblock.symbol.show();
             self.ui.subblock.comment.show();
             self.ui.subblock.linkage.show();
@@ -262,6 +282,8 @@ function analysisShowMetadata(data) {
                self.ui.subblock.symbol.dispose();
                self.ui.subblock.comment.dispose();
                self.ui.subblock.linkage.dispose();
+
+               self._ui.bookmark.removeEventListener('click', self._events.onBookmark);
             }
          }
       });
@@ -565,6 +587,14 @@ function initEvent() {
    ui.panel.title.addEventListener('click', onClickBreadcrumb);
 }
 
+function initTaskRunner() {
+   ui.state.global.task.register('add_to_bookmark', function (task) {
+      ui.state.global.bookmark.add(task.path, task.linenumber);
+      ui.state.global.bookmark.render();
+      return Promise.resolve();
+   });
+}
+
 function initComponent() {
    var cookie = get_cookie();
    ui.state.label.text(ui.label.username, cookie.user || '(flame)');
@@ -605,6 +635,7 @@ function initApplication() {
       function () {
          initComponent();
          initEvent();
+         initTaskRunner();
       },
       function () {
          // if 401, redirect to login page
