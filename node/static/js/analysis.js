@@ -106,6 +106,7 @@ AnalysisBlock.prototype = {
 
 function AnalysisBlockManager(dom) {
    this.self = dom;
+   // TODO: decouple container in index.html
    //                                         v pnl-side
    //                              v (div)
    //                   v pnl-side-analysis
@@ -119,6 +120,7 @@ AnalysisBlockManager.prototype = {
       return this.blocks[id];
    },
    showBlock: function (id, name, obj, opt) {
+      opt = opt || {};
       var block = this.blocks[id];
       if (block) {
          block.opt = Object.assign(block.opt, opt);

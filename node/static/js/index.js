@@ -3,6 +3,7 @@
 //@include js/api.js
 //@include js/treeview.js
 //@include js/markdown.js
+//@include js/bookmark.js
 //@include js/editor.js
 //@include js/analysis.js
 //@include js/collector.js
@@ -85,7 +86,7 @@ var ui = {
          }
       }, // label
       global: {
-         bookmark: [],
+         bookmark: new Flame.component.BookMark(),
          editor: null,
          metadata: null,
          lastHash: {}
@@ -125,29 +126,6 @@ function buildHash(changes) {
       hash += '#' + encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]);
    });
    return hash;
-}
-
-function analysisShowBookmark(data) {
-   var name = 'flame://bookmark';
-   var block = ui.panel.analysis_result.getBlock(name);
-   if (block) {
-      ui.panel.analysis_result.showBlock(name, 'bookmark', data);
-   } else {
-      ui.panel.analysis_result.showBlock(name, 'bookmark', data, {
-         disableClose: true,
-         onReset: function (self, obj) {
-            var div;
-            if (!obj || !obj.items || !obj.items.length) {
-               div = document.createElement('div');
-               div.className = 'item item-red';
-               ui.state.append_text(div, 'No Item');
-               self.ui.content.appendChild(div);
-               return;
-            }
-            // TODO: render bookmark items
-         }
-      });
-   }
 }
 
 function analysisBuildNoContent(block, text) {
@@ -608,9 +586,7 @@ function initComponent() {
    ui.panel.analysis_result = new Flame.component.AnalysisBlockManager(
       ui.panel.analysis_result
    );
-   analysisShowBookmark();
-
-   onHashChange();
+   ui.state.global.bookmark.bind(ui.panel.analysis_result);
 
    var pre = document.createElement('pre');
    document.body.appendChild(pre);
@@ -620,6 +596,8 @@ function initComponent() {
       size: pre_style.fontSize
    };
    document.body.removeChild(pre);
+
+   onHashChange();
 }
 
 function initApplication() {
