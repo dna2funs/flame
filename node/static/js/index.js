@@ -216,6 +216,16 @@ function analysisBuildMetadata(obj, subblock) {
    }
 }
 
+function buildImgButton(name, imgSrc) {
+   var btn = document.createElement('button');
+   var img = document.createElement('img');
+   img.src = imgSrc;
+   btn.appendChild(img);
+   btn.className = 'ab-btn';
+   btn.title = name;
+   return btn;
+}
+
 function analysisShowMetadata(data) {
    var name = 'flame://metadata';
    var block = ui.panel.analysis_result.getBlock(name);
@@ -233,13 +243,11 @@ function analysisShowMetadata(data) {
             var path = ui.state.global.lastHash.path;
             var name = path.split('/').pop();
             var div = document.createElement('div');
-            var a_bookmark = document.createElement('button');
-            var img = document.createElement('img');
-            img.src = 'img/bookmark.svg';
-            a_bookmark.appendChild(img);
-            a_bookmark.className = 'ab-btn';
             div.className = 'item-thin item-yellow';
+            var a_bookmark = buildImgButton('bookmark', 'img/bookmark.svg');
             div.appendChild(a_bookmark);
+            var a_topic = buildImgButton('topic', 'img/lightbulb.svg');
+            div.appendChild(a_topic);
             if (obj.linenumber) {
                ui.state.append_text(div, ' ' + name + '#' + obj.linenumber);
             } else {

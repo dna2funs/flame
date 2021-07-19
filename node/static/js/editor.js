@@ -147,7 +147,7 @@ SourceCodeViewer.prototype = {
       div.style.height = (bottom - top) + 'px';
       div.style.top = top + 'px';
       div.style.left = '0px';
-      div.style.backgroundColor = 'yellow';
+      div.style.backgroundColor = '#ff7';
       div.style.display = 'block';
       this.ui.highlight.appendChild(div);
    },

@@ -96,7 +96,23 @@ var api = {
             ]
          });
       } // search
-   } // project
+   }, // project
+   topic: {
+      getMetadata: function (topic) {
+         return Promise.resolve({
+            name: 'this is a test topic',
+            scope: 'public',
+            item: [
+               { path: '/test0/README.md', linenumber: 7 },
+               { path: '/test1/package.json' }
+            ],
+            comment: [
+               { user: 'flame', markdown: 'test topic' },
+               { user: 'test', markdown: 'topic test' }
+            ]
+         });
+      }
+   } // topic
 };
 
 if (!window.Flame) window.Flame = {};

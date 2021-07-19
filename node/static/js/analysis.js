@@ -119,6 +119,9 @@ AnalysisBlockManager.prototype = {
    getBlock: function (id) {
       return this.blocks[id];
    },
+   show: function (dom) {
+      this.self.appendChild(dom);
+   },
    showBlock: function (id, name, obj, opt) {
       opt = opt || {};
       var block = this.blocks[id];
@@ -165,10 +168,90 @@ AnalysisBlockManager.prototype = {
    dom: function () { return this.self; }
 };
 
+function AnalysisTopic(topic) {
+   this.block = new AnalysisBlock('topic: ' + topic, {});
+   this.ui = {
+      self: this.block.dom(),
+      block: {
+         item: new AnalysisBlock('item', {
+            disableClose: true
+            // TODO: onReset
+         }),
+         comment: new AnalysisBlock('comment', {
+            disableClose: true
+            // TODO: onReset
+         })
+      }
+   };
+   this.block.ui.title.title = topic;
+   this.block.loading();
+   this.block.show();
+   this.req = Flame.api.topic.getMetadata(topic);
+   var that = this;
+   this.req.then(
+      function (obj) {
+         that.data = obj;
+         that.render();
+         that.req = null;
+      },
+      function (err) {
+         throw err;
+      }
+   );
+}
+AnalysisTopic.prototype = {
+   dom: function () { return this.ui.self; },
+   render: function () {
+      var obj = Object.assign({}, this.data);
+      var info = {
+         name: obj.name,
+         scope: obj.scope,
+         user: obj.user
+      };
+      delete obj.name;
+      delete obj.scope;
+      delete obj.user;
+      empty_elem(this.block.ui.content);
+      this.block.ui.content.appendChild(this.ui.block.item.dom());
+      this.block.ui.content.appendChild(this.ui.block.comment.dom());
+      if (obj.item && obj.item.length) {
+         this.ui.block.item.reset('item', obj.item);
+         delete obj.item;
+      } else {
+         this.ui.block.item.reset('item', []);
+      }
+      if (obj.comment && obj.comment.length) {
+         this.ui.block.comment.reset('comment', obj.comment);
+         delete obj.comment;
+      } else {
+         this.ui.block.comment.reset('comment', []);
+      }
+      for (var name in obj) {
+         var block = this.ui.block[name];
+         if (!block) {
+            block = new AnalysisBlock(name, {
+               disableClose: true
+               // TODO: onReset
+            });
+            this.ui.block[name] = block;
+            this.block.ui.content.appendChild(block);
+         }
+         block.reset(name, obj[name]);
+      }
+   },
+   dispose: function () {
+      for (var name in this.ui.block) {
+         this.ui.block[name].dispose();
+      }
+      this.block.dispose();
+   }
+};
+
 if (!window.Flame) window.Flame = {};
 window.Flame.component = Object.assign(window.Flame.component || {}, {
    AnalysisBlock: AnalysisBlock,
-   AnalysisBlockManager: AnalysisBlockManager
+   AnalysisBlockManager: AnalysisBlockManager,
+   AnalysisTopic: AnalysisTopic
 });
 
 })();

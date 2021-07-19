@@ -62,6 +62,7 @@ BookMark.prototype = {
          }
       });
       this.render();
+      this.block.show();
 
       this.events = {
          onDelBookMarkItem: function (evt) {
